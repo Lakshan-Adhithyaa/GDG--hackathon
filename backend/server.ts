@@ -1,32 +1,52 @@
-import express from "express"
-import cors from "cors"
-import dotenv from "dotenv"
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// IMPORTANT: keep .js extension (NodeNext rule)
-import generateEdgeCasesRoute from "./routes/generateEdgeCases.js"
+dotenv.config();
 
-// Load environment variables
-dotenv.config()
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// Create Express app
-const app = express()
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Middlewares
-app.use(cors())
-app.use(express.json())
+app.post("/api/generate-edge-states", async (req, res) => {
+  const { schema, componentName } = req.body;
 
-// Simple health check route (optional but recommended)
-app.get("/", (req, res) => {
-  res.json({ status: "Backend is running 🚀" })
-})
+  const prompt = `
+You are an expert in UI semantic integrity testing.
 
-// Main API route
-app.use("/api", generateEdgeCasesRoute)
+Given this component schema:
+${JSON.stringify(schema)}
 
-// Server Port
-const PORT = 3001
+Generate 8 realistic UI edge case scenarios.
 
-// 🔥 START SERVER (MOST IMPORTANT PART)
-app.listen(PORT, () => {
-  console.log(`🚀 AI Backend running on http://localhost:${PORT}`)
-})
+Return STRICT JSON array only:
+[
+  {
+    "title": "Missing Required Field",
+    "mutations": { "field": null }
+  }
+]
+`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    const cleaned = responseText.replace(/```json|```/g, "").trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    res.json(parsed);
+  } catch (error) {
+    console.error("Gemini error:", error);
+    res.status(500).json({ error: "Failed to generate edge states" });
+  }
+});
+
+app.listen(5000, () => {
+  console.log("Sential backend running on http://localhost:5000");
+});
