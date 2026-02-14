@@ -1,7 +1,8 @@
-import { Schema } from './types'
+import { SchemaDefinition } from "./types";
 
-export function validate(schema: Schema): boolean {
-  return true
+export function validateSchema(
+  schema: SchemaDefinition,
+  props: any
+): boolean {
+  return Object.keys(props).every((key) => schema[key]);
 }
-
-export default validate

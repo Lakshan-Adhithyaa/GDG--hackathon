@@ -1,7 +1,11 @@
-import { Mutation } from './types'
+import { EdgeCase } from "./types";
 
-export function applyMutation(target: any, mutation: Mutation): any {
-  return target
+export function applyEdgeCases(
+  baseProps: any,
+  activeCases: EdgeCase[]
+) {
+  return activeCases.reduce(
+    (props, edgeCase) => edgeCase.patch(props),
+    { ...baseProps }
+  );
 }
-
-export default applyMutation
